@@ -1,0 +1,384 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - RideON</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .doc-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .doc-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, #6c3fcf, #8b5cf6);
+            border-radius: 15px;
+            color: white;
+        }
+        
+        .doc-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .doc-header p {
+            margin: 1rem 0 0 0;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .doc-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .doc-feature {
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: 12px;
+            border-left: 4px solid #6c3fcf;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .doc-feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(108, 63, 207, 0.15);
+        }
+        
+        .doc-feature i {
+            font-size: 2.5rem;
+            color: #6c3fcf;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .doc-feature h3 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-size: 1.4rem;
+        }
+        
+        .doc-feature p {
+            color: #64748b;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        .download-section {
+            text-align: center;
+            margin: 3rem 0;
+            padding: 3rem;
+            background: linear-gradient(135deg, #fef3c7, #fed7aa);
+            border-radius: 15px;
+            border: 2px solid #f59e0b;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: white;
+            padding: 1rem 3rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .download-btn i {
+            font-size: 1.4rem;
+        }
+        
+        .doc-sections {
+            margin: 3rem 0;
+        }
+        
+        .doc-sections h2 {
+            color: #1e293b;
+            border-bottom: 3px solid #6c3fcf;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .section-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .section-item {
+            padding: 1.5rem;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .section-item:hover {
+            border-color: #6c3fcf;
+            background: #f8fafc;
+            transform: translateY(-2px);
+        }
+        
+        .section-item h4 {
+            color: #1e293b;
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+        
+        .section-item p {
+            color: #64748b;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            border-radius: 12px;
+            border: 2px solid #c4b5fd;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #6c3fcf;
+            display: block;
+        }
+        
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .nav-link {
+            padding: 0.75rem 1.5rem;
+            background: #6c3fcf;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            background: #5b2fbd;
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        @media (max-width: 768px) {
+            .doc-container {
+                margin: 1rem;
+                padding: 1rem;
+            }
+            
+            .doc-header h1 {
+                font-size: 2rem;
+            }
+            
+            .doc-features {
+                grid-template-columns: 1fr;
+            }
+            
+            .download-section {
+                padding: 2rem 1rem;
+            }
+            
+            .section-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="doc-container">
+        <div class="doc-header">
+            <h1><i class="fas fa-book"></i> RideON Project Documentation</h1>
+            <p>Academic documentation and presentation with proper formatting, screenshots, and references</p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">6</span>
+                <div class="stat-label">Main Sections</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">15+</span>
+                <div class="stat-label">Screenshot Descriptions</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">40+</span>
+                <div class="stat-label">Pages of Content</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">25+</span>
+                <div class="stat-label">References</div>
+            </div>
+        </div>
+
+        <!-- Download Section -->
+        <div class="download-section">
+            <h2><i class="fas fa-download"></i> Download Documentation with Screenshots</h2>
+            <p style="margin: 1rem 0; font-size: 1.1rem; color: #92400e;">
+                Get the complete academic documentation as a professionally formatted Word document with Table of Contents, Introduction, <strong>Actual Screenshots</strong>, Future Scope, and References. All text is justified, Times New Roman font, 12pt content and 14pt headings with embedded images.
+            </p>
+            <a href="{% url 'download_documentation' %}" class="download-btn">
+                <i class="fas fa-file-word"></i>
+                Download with Screenshots
+            </a>
+        </div>
+
+        <!-- Key Features -->
+        <div class="doc-features">
+            <div class="doc-feature">
+                <i class="fas fa-list-alt"></i>
+                <h3>Table of Contents</h3>
+                <p>Comprehensive table of contents with page numbers, section references, and detailed subsection listings for easy navigation.</p>
+            </div>
+            
+            <div class="doc-feature">
+                <i class="fas fa-bullseye"></i>
+                <h3>Introduction & Objectives</h3>
+                <p>Complete project introduction including objectives, purpose, system overview, and technology stack with academic formatting.</p>
+            </div>
+            
+            <div class="doc-feature">
+                <i class="fas fa-user"></i>
+                <h3>User-Side Screenshots</h3>
+                <p>10 actual screenshots with labels covering registration, login, booking, payments, preferences, and wallet management with detailed descriptions.</p>
+            </div>
+            
+            <div class="doc-feature">
+                <i class="fas fa-user-shield"></i>
+                <h3>Admin-Side Screenshots</h3>
+                <p>5 actual screenshots showing admin dashboard, trip management, user management, driver controls, and system monitoring.</p>
+            </div>
+            
+            <div class="doc-feature">
+                <i class="fas fa-road"></i>
+                <h3>Future Scope</h3>
+                <p>Detailed future enhancements including GPS integration, mobile apps, AI features, and business expansion plans.</p>
+            </div>
+            
+            <div class="doc-feature">
+                <i class="fas fa-book-open"></i>
+                <h3>References</h3>
+                <p>Academic references including technical documentation, framework guides, and external resources with proper citations.</p>
+            </div>
+        </div>
+
+        <!-- Documentation Sections -->
+        <div class="doc-sections">
+            <h2><i class="fas fa-list"></i> Table of Contents</h2>
+            <ul class="section-list" style="list-style-type:decimal; margin-left:2em;">
+                <li class="section-item"><h4>1. Table of Contents</h4></li>
+                <li class="section-item"><h4>2. Introduction</h4><p>Project Objective, Purpose, Technology Stack</p></li>
+                <li class="section-item"><h4>3. Project Overview</h4></li>
+                <li class="section-item"><h4>4. Feature List</h4></li>
+                <li class="section-item"><h4>5. System Architecture</h4></li>
+                <li class="section-item"><h4>6. Installation Guide</h4></li>
+                <li class="section-item"><h4>7. User Guide</h4>
+                    <ul style="list-style-type:disc; margin-left:2em;">
+                        <li>Home Page <span style="color:#6c3fcf;">(Screenshot 130)</span></li>
+                        <li>User Registration (Screenshot 131)</li>
+                        <li>User Login (Screenshot 132)</li>
+                        <li>Booking Interface (Screenshot 133)</li>
+                        <li>Vehicle Selection (Screenshot 134)</li>
+                        <li>Trip Details (Screenshot 135)</li>
+                        <li>Payment Processing (Screenshot 136)</li>
+                        <li>Booking History (Screenshot 137)</li>
+                        <li>User Preferences (Screenshot 138)</li>
+                        <li>Wallet Management (Screenshot 139)</li>
+                    </ul>
+                </li>
+                <li class="section-item"><h4>8. Administrator Guide</h4>
+                    <ul style="list-style-type:disc; margin-left:2em;">
+                        <li>Admin Dashboard (Screenshot 140)</li>
+                        <li>Trip Management (Screenshot 141)</li>
+                        <li>User Management (Screenshot 142)</li>
+                        <li>Driver Management (Screenshot 143)</li>
+                        <li>System Monitoring (Screenshot 144)</li>
+                    </ul>
+                </li>
+                <li class="section-item"><h4>9. Cookie System Documentation</h4></li>
+                <li class="section-item"><h4>10. Troubleshooting Guide</h4></li>
+                <li class="section-item"><h4>11. Changelog & Version History</h4></li>
+                <li class="section-item"><h4>12. Future Scope</h4></li>
+                <li class="section-item"><h4>13. References</h4></li>
+            </ul>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="nav-links">
+            <a href="{% url 'home' %}" class="nav-link">
+                <i class="fas fa-home"></i> Home
+            </a>
+            <a href="{% url 'booking_history' %}" class="nav-link">
+                <i class="fas fa-history"></i> Booking History
+            </a>
+            <a href="{% url 'user_preferences' %}" class="nav-link">
+                <i class="fas fa-cog"></i> Preferences
+            </a>
+            {% if user.userprofile.is_admin %}
+            <a href="{% url 'admin_dashboard' %}" class="nav-link">
+                <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+            </a>
+            {% endif %}
+        </div>
+
+        <div style="text-align: center; margin-top: 3rem; padding: 2rem; color: #64748b; border-top: 2px solid #e2e8f0;">
+            <p><i class="fas fa-info-circle"></i> Academic documentation with actual embedded screenshots, proper formatting, justified text, Times New Roman font.</p>
+            <p style="margin-top: 1rem;"><strong>Version 1.0.0</strong> • Generated on {{ 'today'|date:"F d, Y" }} • With Real Screenshots</p>
+        </div>
+    </div>
+</body>
+</html>

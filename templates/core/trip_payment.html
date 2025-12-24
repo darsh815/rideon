@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trip Payment</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            margin: 0; 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            padding: 20px 0;
+        }
+        .container { 
+            max-width: 500px; 
+            margin: 0 auto; 
+            background: #fff; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); 
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #6c3fcf 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            position: relative;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="70" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+        .header .subtitle {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        .content {
+            padding: 30px;
+        }
+        .trip-summary { 
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%); 
+            border-radius: 15px; 
+            padding: 25px; 
+            margin-bottom: 30px; 
+            border-left: 5px solid #6c3fcf;
+            position: relative;
+        }
+        .trip-summary::before {
+            content: '🧾';
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.5rem;
+        }
+        .trip-summary h3 {
+            margin: 0 0 20px 0; 
+            color: #2d1e5f; 
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+        }
+        .trip-summary h3::before {
+            content: '📋';
+            margin-right: 8px;
+        }
+        .trip-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(108, 63, 207, 0.1);
+        }
+        .trip-detail:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .trip-detail.total {
+            background: linear-gradient(135deg, #6c3fcf 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .trip-detail label {
+            font-weight: 600;
+            color: #2d1e5f;
+            display: flex;
+            align-items: center;
+        }
+        .trip-detail span {
+            color: #444;
+            font-weight: 500;
+        }
+        .payment-section h3 {
+            color: #2d1e5f; 
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+        }
+        .payment-section h3::before {
+            content: '💳';
+            margin-right: 8px;
+        }
+        .payment-options { margin-bottom: 30px; }
+        .payment-option { 
+            background: #fff; 
+            border: 2px solid #e1e5e9; 
+            border-radius: 12px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .payment-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(108, 63, 207, 0.05), transparent);
+            transition: left 0.5s;
+        }
+        .payment-option:hover::before {
+            left: 100%;
+        }
+        .payment-option:hover { 
+            border-color: #6c3fcf; 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 63, 207, 0.2);
+        }
+        .payment-option.selected { 
+            border-color: #6c3fcf; 
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+            box-shadow: 0 5px 15px rgba(108, 63, 207, 0.2);
+        }
+        .payment-option input[type="radio"] { 
+            margin-right: 15px; 
+            transform: scale(1.2);
+        }
+        .payment-option-content {
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .payment-icon {
+            font-size: 1.5rem;
+            margin-right: 12px;
+        }
+        .payment-text {
+            flex: 1;
+        }
+        .payment-text strong {
+            display: block;
+            font-size: 1.1rem;
+            color: #2d1e5f;
+            margin-bottom: 4px;
+        }
+        .payment-text small {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .btn { 
+            padding: 18px 35px; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            font-size: 1.1rem; 
+            width: 100%; 
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, #6c3fcf 0%, #764ba2 100%); 
+            color: white; 
+        }
+        .btn-primary:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(108, 63, 207, 0.3);
+        }
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .wallet-info { 
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4f7d4 100%); 
+            color: #1a5d1a; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 10px; 
+            font-size: 0.9em; 
+            border-left: 4px solid #28a745;
+        }
+        .insufficient-balance { 
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); 
+            color: #721c24; 
+            border-left: 4px solid #dc3545;
+        }
+        .message-success { 
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); 
+            color: #155724; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            border-radius: 8px; 
+            border-left: 4px solid #28a745;
+        }
+        .message-error { 
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); 
+            color: #721c24; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            border-radius: 8px; 
+            border-left: 4px solid #dc3545;
+        }
+        .footer-links {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .footer-links a {
+            color: #6c3fcf;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover {
+            color: #5a2db5;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .container {
+            animation: slideIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2><i class="fas fa-check-circle"></i> Trip Completed!</h2>
+            <p class="subtitle">Please proceed with payment</p>
+        </div>
+        
+        <div class="content">
+            <div class="trip-summary">
+                <h3>Trip Summary</h3>
+                <div class="trip-detail">
+                    <label><i class="fas fa-hashtag"></i> Booking ID:</label>
+                    <span>#{{ booking.pk }}</span>
+                </div>
+                <div class="trip-detail">
+                    <label><i class="fas fa-car"></i> Vehicle:</label>
+                    <span>{{ booking.vehicle_type }}</span>
+                </div>
+                <div class="trip-detail">
+                    <label><i class="fas fa-map-marker-alt"></i> From:</label>
+                    <span>{{ booking.pickup }}</span>
+                </div>
+                <div class="trip-detail">
+                    <label><i class="fas fa-flag-checkered"></i> To:</label>
+                    <span>{{ booking.destination }}</span>
+                </div>
+                {% if booking.driver %}
+                <div class="trip-detail">
+                    <label><i class="fas fa-user"></i> Driver:</label>
+                    <span>{{ booking.driver.name }}</span>
+                </div>
+                {% endif %}
+                <div class="trip-detail total">
+                    <label><i class="fas fa-money-bill-wave"></i> Total Fare:</label>
+                    <span>₹{{ booking.price }}</span>
+                </div>
+            </div>
+            
+            <div class="payment-section">
+                <h3>Choose Payment Method</h3>
+                
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="{% if message.tags == 'success' %}message-success{% elif message.tags == 'error' %}message-error{% endif %}">
+                            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="payment-options">
+                        <div class="payment-option">
+                            <input type="radio" name="payment_method" value="wallet" id="wallet-option" required>
+                            <div class="payment-option-content">
+                                <div class="payment-icon">�</div>
+                                <div class="payment-text">
+                                    <strong>Wallet Payment</strong>
+                                    <small>Quick & secure digital payment</small>
+                                </div>
+                            </div>
+                            {% if wallet %}
+                                <div class="wallet-info {% if wallet_balance < booking.price %}insufficient-balance{% endif %}">
+                                    <i class="fas fa-wallet"></i> <strong>Wallet Balance: ₹{{ wallet_balance }}</strong>
+                                    {% if wallet_balance < booking.price %}
+                                        <br><i class="fas fa-exclamation-triangle"></i> Insufficient balance! Need ₹{{ booking.price|floatformat:0 }}, you have ₹{{ wallet_balance|floatformat:0 }}
+                                        <br><a href="{% url 'add_wallet_balance' %}" style="color: #dc3545; font-weight: bold;">💳 Top up wallet</a>
+                                    {% else %}
+                                        <br><i class="fas fa-check-circle"></i> Remaining after payment: ₹{{ wallet_balance|floatformat:0|add:"-"|add:booking.price|floatformat:0 }}
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="wallet-info insufficient-balance">
+                                    <i class="fas fa-exclamation-triangle"></i> Wallet not available
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="payment-option">
+                            <input type="radio" name="payment_method" value="cash" id="cash-option" required>
+                            <div class="payment-option-content">
+                                <div class="payment-icon">💵</div>
+                                <div class="payment-text">
+                                    <strong>Cash Payment</strong>
+                                    <small>Pay directly to your driver</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="pay-button" 
+                            data-wallet-balance="{{ wallet_balance|default:0 }}"
+                            data-booking-price="{{ booking.price }}"
+                            disabled>
+                        <i class="fas fa-credit-card"></i> Complete Payment
+                    </button>
+                </form>
+                
+                <div class="footer-links">
+                    <a href="{% url 'booking_history' %}">
+                        <i class="fas fa-history"></i> View Booking History
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Add event listeners for payment options
+        document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Remove selected class from all options
+                document.querySelectorAll('.payment-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                // Add selected class to current option
+                this.closest('.payment-option').classList.add('selected');
+                
+                // Enable pay button
+                const button = document.getElementById('pay-button');
+                button.disabled = false;
+                
+                // Get wallet balance and booking price from data attributes
+                const walletBalance = parseFloat(button.dataset.walletBalance) || 0;
+                const bookingPrice = parseFloat(button.dataset.bookingPrice) || 0;
+                
+                // Update button text based on selected method
+                if (this.value === 'wallet') {
+                    if (walletBalance >= bookingPrice) {
+                        button.innerHTML = '<i class="fas fa-wallet"></i> Pay ₹' + bookingPrice + ' from Wallet';
+                    } else {
+                        button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Insufficient Balance';
+                        button.disabled = true;
+                    }
+                } else {
+                    button.innerHTML = '<i class="fas fa-hand-holding-usd"></i> Confirm Cash Payment';
+                }
+            });
+        });
+        
+        // Add click handlers to payment option containers
+        document.querySelectorAll('.payment-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                if (e.target.type !== 'radio') {
+                    const radio = this.querySelector('input[type="radio"]');
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+    </script>
+</body>
+</html>

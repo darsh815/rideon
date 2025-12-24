@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home - RideOn</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6c3fcf">
+    <link rel="preload" href="/static/css/style.css" as="style">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script defer src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <style>
+        /* Responsive container with faster animations */
+        .container {
+            width: 100vw;
+            max-width: 100vw;
+            min-width: 0;
+            box-sizing: border-box;
+            padding: 0 8px;
+            will-change: transform;
+        }
+        @media (max-width: 900px) {
+            .container {
+                padding: 0 2vw;
+            }
+            #ride-section, .map-container, #vehicle-div, #location-div {
+                width: 100% !important;
+                max-width: 100vw !important;
+                will-change: transform;
+            }
+        }
+        @media (max-width: 700px) {
+            #ride-section {
+                flex-direction: column !important;
+            }
+            #vehicle-div, #location-div {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100vw !important;
+                margin: 0 !important;
+            }
+            .vehicle-list {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+        }
+        @media (max-width: 500px) {
+            .container, #ride-section, .map-container, #vehicle-div, #location-div {
+                padding: 0 !important;
+                border-radius: 8px !important;
+            }
+            .side-menu {
+                width: 90vw !important;
+                min-width: 0 !important;
+                left: 0 !important;
+                border-radius: 0 12px 12px 0 !important;
+            }
+        }
+        /* Optimized hamburger animation */
+        .hamburger span {
+            transition: all 0.2s cubic-bezier(.4,0,.2,1);
+            will-change: transform, opacity;
+        }
+        .hamburger.active span:nth-child(1) {
+            transform: translateY(10px) rotate(45deg);
+        }
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger.active span:nth-child(3) {
+            transform: translateY(-10px) rotate(-45deg);
+        }
+        .side-menu {
+            transition: left 0.2s cubic-bezier(.4,0,.2,1), opacity 0.2s;
+            will-change: transform, opacity;
+            transform: translateZ(0);
+        }
+        .side-menu.show {
+            display: block !important;
+            left: 0 !important;
+            opacity: 1 !important;
+        }
+        .side-menu.hide {
+            left: -260px !important;
+            opacity: 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Demo Notification Bar -->
+    <div style="width:100%;background:#ffe082;color:#6c3fcf;padding:12px 0;text-align:center;font-weight:600;font-size:1.08em;box-shadow:0 2px 8px rgba(44,34,94,0.07);">
+        
+    </div>
+    <div class="container" style="width:100vw;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:linear-gradient(120deg,#ede7fa 0%,#f6f3ff 100%);padding:0 8px;box-sizing:border-box;">
+        <h1 style="margin-bottom:8px;">RideOn</h1>
+        {% if user.is_authenticated %}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:18px;">
+                <span style="font-weight:500;">Hello, {{ user.username }}!</span>
+                <form method="post" action="{% url 'logout' %}" style="display:inline;margin-left:32px;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none;border:none;color:#0984e3;font-weight:600;cursor:pointer;">Logout</button>
+                </form>
+            </div>
+            <style>
+                .hamburger {
+                    display: inline-block;
+                    cursor: pointer;
+                    padding: 10px;
+                    margin-bottom: 16px;
+                    position: relative;
+                    z-index: 101;
+                }
+                .hamburger span {
+                    display: block;
+                    width: 32px;
+                    height: 4px;
+                    margin: 6px 0;
+                    background: #6c3fcf;
+                    border-radius: 2px;
+                    transition: 0.3s;
+                }
+                .side-menu {
+                    display: none;
+                    position: fixed;
+                    top: 60px;
+                    left: 0;
+                    width: 260px;
+                    height: 90vh;
+                    background: #fff;
+                    box-shadow: 2px 0 16px rgba(44,34,94,0.10);
+                    z-index: 999;
+                    border-radius: 0 16px 16px 0;
+                    padding: 32px 0 32px 0;
+                    animation: slideIn 0.3s;
+                }
+                @keyframes slideIn {
+                    from { left: -260px; opacity: 0; }
+                    to { left: 0; opacity: 1; }
+                }
+                .side-menu ul {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 18px;
+                    padding-left: 32px;
+                }
+                .side-menu a {
+                    color: #6c3fcf;
+                    font-weight: 600;
+                    text-decoration: none;
+                    padding: 12px 32px 12px 0;
+                    border-radius: 8px;
+                    background: #ede7fa;
+                    transition: background 0.2s;
+                    display: block;
+                    width: 180px;
+                }
+            </style>
+            <div style="position:relative;width:100%;text-align:left;">
+                <div class="hamburger" id="hamburger-menu" tabindex="0">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <nav id="side-menu" class="side-menu hide" style="width: 250px;padding:18px 0 18px 0;">
+                    <div style="width:100%;display:flex;justify-content:flex-end;padding-right:18px;">
+                        <button id="close-menu-btn" style="background:none;border:none;font-size:1.5em;color:#6c3fcf;cursor:pointer;">&times;</button>
+                    </div>
+                    <ul>
+                        <li><a href="{% url 'book_vehicle' %}" style="width:120px;padding:8px 16px;">Manage Booking</a></li>
+                        <li><a href="{% url 'booking_history' %}" style="width:120px;padding:8px 16px;">View History</a></li>
+                        <li><a href="{% url 'edit_profile' %}" style="width:120px;padding:8px 16px;">Edit Profile</a></li>
+                        <li><a href="{% url 'add_wallet_balance' %}" style="width:120px;padding:8px 16px;">Add Balance</a></li>
+                        <li><a href="{% url 'user_preferences' %}" style="width:120px;padding:8px 16px;">Preferences</a></li>
+                        <li><a href="{% url 'documentation' %}" style="width:120px;padding:8px 16px;">Documentation</a></li>
+                        <li><a href="/about/" style="width:120px;padding:8px 16px;">About Us</a></li>
+                        <li><a href="/contact/" style="width:120px;padding:8px 16px;">Contact Us</a></li>
+                    </ul>
+                </nav>
+            </div>
+            <div style="display:flex;gap:12px;margin-bottom:24px;align-items:center;">
+                <button id="tab-ride" style="flex:1;padding:8px;background:#0984e3;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:0.98em;">Book Ride</button>
+                <button id="tab-rent" style="flex:1;padding:8px;background:#dfe6e9;color:#2d3436;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:0.98em;">Rent Vehicle</button>
+                <button id="chat-btn" style="padding:8px 18px;background:#6c3fcf;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:0.98em;margin-left:12px;">Chat</button>
+            </div>
+            <div id="chat-box" style="display:none;position:fixed;bottom:32px;right:32px;width:340px;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(44,34,94,0.10);padding:18px 16px;z-index:999;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="font-weight:600;color:#6c3fcf;">Chat (Demo)</span>
+                    <button onclick="document.getElementById('chat-box').style.display='none';" style="background:none;border:none;font-size:1.3em;color:#6c3fcf;cursor:pointer;">&times;</button>
+                </div>
+                <div style="margin-bottom:8px;font-size:0.98em;color:#888;">Messages are not stored (demo only)</div>
+                <input type="text" placeholder="Type a message..." style="width:70%;padding:6px 10px;border-radius:6px;border:1px solid #dfe6e9;">
+                <button style="background:#0984e3;color:#fff;border:none;border-radius:6px;padding:6px 18px;margin-left:8px;">Send</button>
+            </div>
+            <script>
+                // Optimized hamburger menu with debouncing
+                const hamburger = document.getElementById('hamburger-menu');
+                const sideMenu = document.getElementById('side-menu');
+                const closeMenuBtn = document.getElementById('close-menu-btn');
+                
+                let menuToggleTimeout;
+                hamburger.onclick = function() {
+                    clearTimeout(menuToggleTimeout);
+                    menuToggleTimeout = setTimeout(() => {
+                        hamburger.classList.toggle('active');
+                        sideMenu.classList.toggle('show');
+                        sideMenu.classList.toggle('hide');
+                    }, 10);
+                };
+                
+                closeMenuBtn.onclick = function() {
+                    hamburger.classList.remove('active');
+                    sideMenu.classList.remove('show');
+                    sideMenu.classList.add('hide');
+                };
+                
+                // Optimized outside click handler
+                let clickTimeout;
+                document.addEventListener('click', function(e) {
+                    clearTimeout(clickTimeout);
+                    clickTimeout = setTimeout(() => {
+                        if (!sideMenu.contains(e.target) && !hamburger.contains(e.target)) {
+                            hamburger.classList.remove('active');
+                            sideMenu.classList.remove('show');
+                            sideMenu.classList.add('hide');
+                        }
+                    }, 10);
+                });
+                
+                // Keyboard accessibility
+                hamburger.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        hamburger.click();
+                    }
+                });
+                
+                // Chat button with faster toggle
+                const chatBtn = document.getElementById('chat-btn');
+                const chatBox = document.getElementById('chat-box');
+                chatBtn.onclick = function() {
+                    chatBox.style.display = chatBox.style.display === 'block' ? 'none' : 'block';
+                };
+            </script>
+            <div id="ride-section" style="width:100%;max-width:1400px;margin:0 auto;display:flex;flex-direction:column;align-items:center;">
+                <div style="height:48px;"></div>
+                <div class="map-container" id="map" style="height: 320px; width: 96%; margin: 0 auto 24px auto; border-radius:12px; box-shadow:0 2px 12px rgba(44,34,94,0.08); transform: translateZ(0);"></div>
+                <div style="width:96%;display:flex;flex-direction:row;gap:24px;justify-content:center;align-items:flex-start;">
+                    <div id="location-div" style="flex:1;min-width:260px;max-width:480px;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(44,34,94,0.06);padding:24px 20px;display:flex;flex-direction:column;gap:16px;transform: translateZ(0);">
+                        <form class="route-form" id="location-form" style="display:flex;flex-direction:column;gap:16px;">
+                            {% csrf_token %}
+                            <label for="pickup" style="font-weight:600;color:#6c3fcf;font-size:0.95em;">Pickup Location:</label>
+                            <input type="text" id="pickup" name="pickup" placeholder="Enter pickup location" required value="{{ pickup|default:'' }}" style="padding:10px 16px;border-radius:8px;border:1px solid #dfe6e9;font-size:1em;width:100%;box-sizing:border-box;transition:border-color 0.2s;">
+                            <label for="destination" style="font-weight:600;color:#6c3fcf;font-size:0.95em;">Destination:</label>
+                            <input type="text" id="destination" name="destination" placeholder="Enter destination" required value="{{ destination|default:'' }}" style="padding:10px 16px;border-radius:8px;border:1px solid #dfe6e9;font-size:1em;width:100%;box-sizing:border-box;transition:border-color 0.2s;">
+                            <div style="display:flex;gap:10px;">
+                                <button type="button" id="show-route-btn" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;font-size:0.95em;flex:1;transition:background 0.2s;">Show Route</button>
+                                <button type="button" id="show-vehicles-btn" style="background:#0984e3;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;font-size:0.95em;flex:1;transition:background 0.2s;">Show Vehicles</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div id="vehicle-div" style="flex:2;width:75%;height:75%;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(44,34,94,0.06);padding:24px 20px;display:flex;flex-direction:column;gap:16px;transform: translateZ(0);">
+                        <div class="vehicle-list" id="vehicle-list" style="display:block;">
+                            <h2 style="margin-bottom:12px;font-size:1.3em;">Available Vehicles</h2>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;">
+                            {% if vehicles %}
+                                {% for v in vehicles %}
+                                    <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                        <input type="hidden" name="pickup" value="{{ pickup }}">
+                                        <input type="hidden" name="destination" value="{{ destination }}">
+                                        <input type="hidden" name="vehicle_type" value="{{ v.type }}">
+                                        <input type="hidden" name="price" value="{{ v.price }}">
+                                        <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 6px rgba(0,0,0,0.04);border-radius:8px;padding:14px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;transition:all 0.2s;transform: translateZ(0);">
+                                            {% if v.type == 'Scooter' or v.type == 'Saver Scooter' %}
+                                                <img src="https://img.icons8.com/ios-filled/50/0984e3/scooter.png" alt="{{ v.type }}" style="width:36px;height:36px;margin-bottom:6px;align-self:center;" loading="lazy" />
+                                            {% elif v.type == 'Bike' %}
+                                                <img src="https://img.icons8.com/ios-filled/50/0984e3/motorcycle.png" alt="{{ v.type }}" style="width:36px;height:36px;margin-bottom:6px;align-self:center;" loading="lazy" />
+                                            {% elif v.type == 'Rickshaw' or v.type == 'Auto' %}
+                                                <img src="https://img.icons8.com/ios-filled/50/0984e3/auto-rickshaw.png" alt="{{ v.type }}" style="width:36px;height:36px;margin-bottom:6px;align-self:center;" loading="lazy" />
+                                            {% elif v.type == 'SUV' %}
+                                                <img src="https://img.icons8.com/ios-filled/50/0984e3/suv.png" alt="{{ v.type }}" style="width:36px;height:36px;margin-bottom:6px;align-self:center;" loading="lazy" />
+                                            {% elif v.type == 'Mini' %}
+                                                <img src="https://img.icons8.com/ios-filled/50/0984e3/hatchback.png" alt="{{ v.type }}" style="width:36px;height:36px;margin-bottom:6px;align-self:center;" loading="lazy" />
+                                            {% else %}
+                                                <img src="https://img.icons8.com/ios-filled/50/0984e3/car--v1.png" alt="{{ v.type }}" style="width:36px;height:36px;margin-bottom:6px;align-self:center;" loading="lazy" />
+                                            {% endif %}
+                                            <span class="vehicle-type" style="font-size:1.05em;margin-bottom:4px;"><strong>Type:</strong> {{ v.type }}</span>
+                                            {% if v.distance %}
+                                                <span style="font-size:0.9em;color:#666;margin-bottom:4px;">Distance: {{ v.distance }} km</span>
+                                                <span style="font-size:0.85em;color:#888;margin-bottom:4px;">Base: ₹{{ v.base_fare }} + ₹{{ v.per_km_rate }}/km</span>
+                                            {% endif %}
+                                            <span class="vehicle-price" data-type="{{ v.type }}" style="margin-bottom:4px;"><strong>Price:</strong> ₹{{ v.price }}</span>
+                                            <input type="hidden" name="price" value="{{ v.price }}" data-type="{{ v.type }}">
+                                            <span style="margin-top:auto;color:#0984e3;font-weight:600;align-self:center;font-size:0.95em;">Book Now</span>
+                                        </button>
+                                    </form>
+                                {% endfor %}
+                            {% else %}
+                                <!-- Demo vehicles if none available -->
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="Scooter">
+                                    <input type="hidden" name="price" value="80">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/0984e3/scooter.png" alt="Scooter" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> Scooter</span>
+                                        <span class="vehicle-price" data-type="Scooter"><strong>Price:</strong> ₹80</span>
+                                        <input type="hidden" name="price" value="80" data-type="Scooter">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="Saver Scooter">
+                                    <input type="hidden" name="price" value="65">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/27ae60/scooter.png" alt="Saver Scooter" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> Saver Scooter</span>
+                                        <span class="vehicle-price" data-type="Saver Scooter"><strong>Price:</strong> ₹65</span>
+                                        <input type="hidden" name="price" value="65" data-type="Saver Scooter">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="Bike">
+                                    <input type="hidden" name="price" value="100">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/0984e3/motorcycle.png" alt="Bike" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> Bike</span>
+                                        <span class="vehicle-price" data-type="Bike"><strong>Price:</strong> ₹100</span>
+                                        <input type="hidden" name="price" value="100" data-type="Bike">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="Rickshaw">
+                                    <input type="hidden" name="price" value="90">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/0984e3/auto-rickshaw.png" alt="Rickshaw" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> Rickshaw</span>
+                                        <span class="vehicle-price" data-type="Rickshaw"><strong>Price:</strong> ₹90</span>
+                                        <input type="hidden" name="price" value="90" data-type="Rickshaw">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="Mini">
+                                    <input type="hidden" name="price" value="120">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/0984e3/compact-car.png" alt="Mini" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> Mini</span>
+                                        <span class="vehicle-price" data-type="Mini"><strong>Price:</strong> ₹120</span>
+                                        <input type="hidden" name="price" value="120" data-type="Mini">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="SUV">
+                                    <input type="hidden" name="price" value="400">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/0984e3/suv.png" alt="SUV" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> SUV</span>
+                                        <span class="vehicle-price" data-type="SUV"><strong>Price:</strong> ₹400</span>
+                                        <input type="hidden" name="price" value="400" data-type="SUV">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="Auto">
+                                    <input type="hidden" name="price" value="150">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/0984e3/auto-rickshaw.png" alt="Auto" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> Auto</span>
+                                        <span class="vehicle-price" data-type="Auto"><strong>Price:</strong> ₹150</span>
+                                        <input type="hidden" name="price" value="150" data-type="Auto">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                                </form>
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="SUV">
+                                    <input type="hidden" name="price" value="400">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/0984e3/suv.png" alt="SUV" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> SUV</span>
+                                        <span class="vehicle-price" data-type="SUV"><strong>Price:</strong> ₹400</span>
+                                        <input type="hidden" name="price" value="400" data-type="SUV">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                                <form method="get" action="{% url 'book_vehicle' %}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="pickup" value="{{ pickup }}">
+                                    <input type="hidden" name="destination" value="{{ destination }}">
+                                    <input type="hidden" name="vehicle_type" value="Auto">
+                                    <input type="hidden" name="price" value="150">
+                                    <button type="submit" class="vehicle" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:180px;">
+                                        <img src="https://img.icons8.com/ios-filled/50/0984e3/auto-rickshaw.png" alt="Auto" style="width:40px;height:40px;margin-bottom:8px;align-self:center;" />
+                                        <span class="vehicle-type" style="font-size:1.1em;margin-bottom:8px;"><strong>Type:</strong> Auto</span>
+                                        <span class="vehicle-price" data-type="Auto"><strong>Price:</strong> ₹150</span>
+                                        <input type="hidden" name="price" value="150" data-type="Auto">
+                                        <span style="margin-top:8px;color:#0984e3;font-weight:600;align-self:center;">Book Now</span>
+                                    </button>
+                                </form>
+                            {% endif %}
+                            </div>
+                        </div>
+                        <div style="margin-top:24px;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(44,34,94,0.08);padding:18px 24px;max-width:500px;">
+                            <form method="post" action="" style="display:flex;flex-direction:row;gap:12px;align-items:center;" onsubmit="return false;">
+                                {% csrf_token %}
+                                <input type="hidden" name="pickup" value="{{ pickup }}">
+                                <input type="hidden" name="destination" value="{{ destination }}">
+                                <label for="promocode" style="font-weight:600;color:#0984e3;">Promocode:</label>
+                                <input type="text" id="promocode" name="promocode" placeholder="Enter promocode" style="padding:10px 18px;border-radius:8px;border:1px solid #dfe6e9;font-size:1em;">
+                                <button type="button" id="apply-promocode-btn" style="margin-left:8px;padding:10px 18px;border-radius:8px;background:#0984e3;color:#fff;font-weight:600;border:none;">Apply Promocode</button>
+                            </form>
+                            <div style="margin-top:8px;font-size:0.98em;color:#636e72;background:#f6f3ff;padding:10px 16px;border-radius:8px;max-width:420px;">
+                                <strong>Available Promocodes:</strong><br>
+                                <ul style="margin:6px 0 0 18px;padding:0;">
+                                    <li><b>freefirst</b>: 100% off (first ride)</li>
+                                    <li><b>save50</b>: 50% off</li>
+                                    <li><b>ride10</b>: 10% off</li>
+                                    <li><b>car20</b>: 20% off</li>
+                                </ul>
+                            </div>
+                            <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                var applyBtn = document.getElementById('apply-promocode-btn');
+                                if (applyBtn) {
+                                    applyBtn.addEventListener('click', function() {
+                                        var promocode = document.getElementById('promocode').value.trim().toLowerCase();
+                                        var pickup = document.getElementById('pickup').value;
+                                        var destination = document.getElementById('destination').value;
+                                        
+                                        // Get all vehicle forms
+                                        var vehicleForms = document.querySelectorAll('.vehicle-list form');
+                                        if (vehicleForms.length === 0) {
+                                            alert('Please show vehicles first before applying promocode.');
+                                            return;
+                                        }
+                                        
+                                        // Define available promocodes
+                                        var validPromocodes = {
+                                            'freefirst': { discount: 100, description: '100% off (first ride)' },
+                                            'save50': { discount: 50, description: '50% off' },
+                                            'ride10': { discount: 10, description: '10% off' },
+                                            'car20': { discount: 20, description: '20% off' }
+                                        };
+                                        
+                                        // Check if promocode is valid or empty
+                                        var isValidPromocode = promocode && validPromocodes.hasOwnProperty(promocode);
+                                        var discount = isValidPromocode ? validPromocodes[promocode].discount : 0;
+                                        
+                                        // Apply promocode to each vehicle
+                                        vehicleForms.forEach(function(vehicleForm) {
+                                            var vehicleType = vehicleForm.querySelector('input[name="vehicle_type"]').value;
+                                            var originalPriceInput = vehicleForm.querySelector('input[name="price"]');
+                                            var originalPrice = originalPriceInput.getAttribute('data-original-price') || originalPriceInput.value;
+                                            
+                                            // Store original price if not already stored
+                                            if (!originalPriceInput.getAttribute('data-original-price')) {
+                                                originalPriceInput.setAttribute('data-original-price', originalPrice);
+                                            }
+                                            
+                                            var priceSpan = vehicleForm.querySelector('.vehicle-price[data-type="' + vehicleType + '"]');
+                                            
+                                            if (priceSpan) {
+                                                if (promocode === '') {
+                                                    // No promocode entered - show original price
+                                                    priceSpan.innerHTML = '<strong>Price:</strong> ₹' + originalPrice;
+                                                    originalPriceInput.value = originalPrice;
+                                                } else if (isValidPromocode) {
+                                                    // Valid promocode - calculate and show discounted price
+                                                    var discountedPrice = Math.round(originalPrice * (1 - discount / 100));
+                                                    if (discount === 100) {
+                                                        // Free ride
+                                                        priceSpan.innerHTML = '<strong>Price:</strong> <span style="text-decoration:line-through;color:#888;">₹' + originalPrice + '</span> <span style="color:#27ae60;font-weight:700;">FREE</span>';
+                                                        originalPriceInput.value = 0;
+                                                    } else {
+                                                        // Discounted price
+                                                        priceSpan.innerHTML = '<strong>Price:</strong> <span style="text-decoration:line-through;color:#888;">₹' + originalPrice + '</span> <span style="color:#e74c3c;font-weight:700;">₹' + discountedPrice + '</span>';
+                                                        originalPriceInput.value = discountedPrice;
+                                                    }
+                                                } else {
+                                                    // Invalid promocode - show original price
+                                                    priceSpan.innerHTML = '<strong>Price:</strong> ₹' + originalPrice;
+                                                    originalPriceInput.value = originalPrice;
+                                                }
+                                            }
+                                        });
+                                        
+                                        // Show promocode status
+                                        var promoStatus = document.getElementById('promo-status');
+                                        if (!promoStatus) {
+                                            var form = document.getElementById('promocode').parentElement.parentElement;
+                                            promoStatus = document.createElement('div');
+                                            promoStatus.id = 'promo-status';
+                                            promoStatus.style.marginTop = '12px';
+                                            promoStatus.style.fontWeight = '600';
+                                            promoStatus.style.padding = '8px 12px';
+                                            promoStatus.style.borderRadius = '6px';
+                                            promoStatus.style.fontSize = '0.95em';
+                                            form.appendChild(promoStatus);
+                                        }
+                                        
+                                        if (promocode === '') {
+                                            // No promocode entered
+                                            promoStatus.textContent = 'Showing original prices (no promocode applied)';
+                                            promoStatus.style.color = '#2c3e50';
+                                            promoStatus.style.backgroundColor = '#ecf0f1';
+                                        } else if (isValidPromocode) {
+                                            // Valid promocode
+                                            var promoInfo = validPromocodes[promocode];
+                                            promoStatus.textContent = 'Promocode "' + promocode.toUpperCase() + '" applied successfully! (' + promoInfo.description + ')';
+                                            promoStatus.style.color = '#27ae60';
+                                            promoStatus.style.backgroundColor = '#d5f4e6';
+                                        } else {
+                                            // Invalid promocode
+                                            promoStatus.textContent = 'Invalid promocode "' + promocode.toUpperCase() + '". Available codes: FREEFIRST, SAVE50, RIDE10, CAR20';
+                                            promoStatus.style.color = '#e74c3c';
+                                            promoStatus.style.backgroundColor = '#fdeaea';
+                                        }
+                                    });
+                                }
+                            });
+                            </script>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    var mapDiv = document.getElementById('map');
+                    if (!mapDiv) return;
+                    mapDiv.style.display = 'block';
+                    mapDiv.style.height = '500px';
+                    var map = L.map('map', {zoomControl: true}).setView([19.0760, 72.8777], 12);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap'
+                    }).addTo(map);
+                    var pickupInput = document.getElementById('pickup');
+                    var destinationInput = document.getElementById('destination');
+                    var pickupMarker, destinationMarker;
+                    var routeLine;
+                    var pickupCoords = null, destinationCoords = null;
+
+                    function drawRoute() {
+                        if (pickupCoords && destinationCoords) {
+                            var apiKey = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImU5OWIyZmI4YWUxZTRlNTRhYjM1NGIwNmRjNDJmMGJkIiwiaCI6Im11cm11cjY0In0=';
+                            var url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${pickupCoords[1]},${pickupCoords[0]}&end=${destinationCoords[1]},${destinationCoords[0]}`;
+                            fetch(url)
+                                .then(resp => resp.json())
+                                .then(routeData => {
+                                    if (routeLine) map.removeLayer(routeLine);
+                                    if (routeData && routeData.features && routeData.features.length > 0) {
+                                        var coords = routeData.features[0].geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+                                        routeLine = L.polyline(coords, {color: '#0984e3', weight: 5, opacity: 0.9}).addTo(map);
+                                        map.fitBounds(L.polyline(coords).getBounds());
+                                        // Get distance in km and update fare
+                                        var distanceMeters = routeData.features[0].properties.summary.distance;
+                                        var distanceKm = distanceMeters / 1000.0;
+                                        updateFareByDistance(distanceKm);
+                                    }
+                                });
+                        }
+                    }
+
+                    function updateMarker(type, value) {
+                        if (!value || value.trim() === '') return;
+                        
+                        // Show loading state
+                        console.log('Searching for location:', type, value);
+                        
+                        fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(value.trim()) + '&limit=1')
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log('Location search result:', data);
+                                if (data && data.length > 0) {
+                                    var lat = parseFloat(data[0].lat);
+                                    var lon = parseFloat(data[0].lon);
+                                    
+                                    if (isNaN(lat) || isNaN(lon)) {
+                                        console.error('Invalid coordinates received');
+                                        alert('Invalid location coordinates received for: ' + value);
+                                        return;
+                                    }
+                                    
+                                    if (type === 'pickup') {
+                                        if (pickupMarker) map.removeLayer(pickupMarker);
+                                        pickupMarker = L.marker([lat, lon], {
+                                            icon: L.icon({
+                                                iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-green.png',
+                                                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                                iconSize: [25, 41],
+                                                iconAnchor: [12, 41],
+                                                popupAnchor: [1, -34],
+                                                shadowSize: [41, 41]
+                                            })
+                                        }).addTo(map).bindPopup('Pickup: ' + value).openPopup();
+                                        pickupCoords = [lat, lon];
+                                        console.log('Pickup marker set:', pickupCoords);
+                                    } else if (type === 'destination') {
+                                        if (destinationMarker) map.removeLayer(destinationMarker);
+                                        destinationMarker = L.marker([lat, lon], {
+                                            icon: L.icon({
+                                                iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-red.png',
+                                                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                                iconSize: [25, 41],
+                                                iconAnchor: [12, 41],
+                                                popupAnchor: [1, -34],
+                                                shadowSize: [41, 41]
+                                            })
+                                        }).addTo(map).bindPopup('Destination: ' + value).openPopup();
+                                        destinationCoords = [lat, lon];
+                                        console.log('Destination marker set:', destinationCoords);
+                                    }
+                                    
+                                    // Adjust map view
+                                    if (pickupCoords && destinationCoords) {
+                                        var group = new L.featureGroup([pickupMarker, destinationMarker]);
+                                        map.fitBounds(group.getBounds().pad(0.1));
+                                    } else {
+                                        map.setView([lat, lon], 13);
+                                    }
+                                    
+                                    // Draw route if both markers exist
+                                    if (pickupCoords && destinationCoords) {
+                                        drawRoute();
+                                    }
+                                } else {
+                                    alert('Location not found: ' + value + '. Please try a more specific address.');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error searching for location:', error);
+                                alert('Error searching for location: ' + value + '. Please check your internet connection and try again.');
+                            });
+                    }
+
+                    // Enhanced input event handlers
+                    if (pickupInput) {
+                        pickupInput.addEventListener('input', function() {
+                            // Clear previous timeout to debounce
+                            clearTimeout(this.searchTimeout);
+                            this.searchTimeout = setTimeout(() => {
+                                if (this.value.trim().length > 3) {
+                                    updateMarker('pickup', this.value);
+                                }
+                            }, 1000);
+                        });
+                        
+                        pickupInput.addEventListener('blur', function() {
+                            if (this.value.trim().length > 0) {
+                                updateMarker('pickup', this.value);
+                            }
+                        });
+                        
+                        pickupInput.addEventListener('keypress', function(e) {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (this.value.trim().length > 0) {
+                                    updateMarker('pickup', this.value);
+                                }
+                            }
+                        });
+                    }
+                    
+                    if (destinationInput) {
+                        destinationInput.addEventListener('input', function() {
+                            // Clear previous timeout to debounce
+                            clearTimeout(this.searchTimeout);
+                            this.searchTimeout = setTimeout(() => {
+                                if (this.value.trim().length > 3) {
+                                    updateMarker('destination', this.value);
+                                }
+                            }, 1000);
+                        });
+                        
+                        destinationInput.addEventListener('blur', function() {
+                            if (this.value.trim().length > 0) {
+                                updateMarker('destination', this.value);
+                            }
+                        });
+                        
+                        destinationInput.addEventListener('keypress', function(e) {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (this.value.trim().length > 0) {
+                                    updateMarker('destination', this.value);
+                                }
+                            }
+                        });
+                    }
+
+                    // Initial markers if values exist
+                    var pickup = mapDiv.getAttribute('data-pickup');
+                    var destination = mapDiv.getAttribute('data-destination');
+                    if (pickup && pickup.length > 0) updateMarker('pickup', pickup);
+                    if (destination && destination.length > 0) updateMarker('destination', destination);
+
+                    // Show Route button logic
+                    var showRouteBtn = document.getElementById('show-route-btn');
+                    if (showRouteBtn) {
+                        showRouteBtn.onclick = function() {
+                            var pickup = document.getElementById('pickup').value.trim();
+                            var destination = document.getElementById('destination').value.trim();
+                            
+                            if (!pickup || !destination) {
+                                alert('Please enter both pickup and destination locations.');
+                                return;
+                            }
+                            
+                            if (pickup.length < 3 || destination.length < 3) {
+                                alert('Please enter more specific locations (at least 3 characters).');
+                                return;
+                            }
+                            
+                            console.log('Show Route clicked:', pickup, destination);
+                            
+                            // Clear existing route if any
+                            if (window.routeControl) {
+                                window.map.removeControl(window.routeControl);
+                                window.routeControl = null;
+                            }
+                            if (window.routeLine) {
+                                window.map.removeLayer(window.routeLine);
+                                window.routeLine = null;
+                            }
+                            
+                            // Add markers and route
+                            updateMarker('pickup', pickup);
+                            setTimeout(() => {
+                                updateMarker('destination', destination);
+                                
+                                // Add route after markers are placed
+                                setTimeout(() => {
+                                    if (window.pickupMarker && window.destinationMarker) {
+                                        try {
+                                            // Create routing control using Leaflet Routing Machine
+                                            if (typeof L.Routing !== 'undefined') {
+                                                window.routeControl = L.Routing.control({
+                                                    waypoints: [
+                                                        window.pickupMarker.getLatLng(),
+                                                        window.destinationMarker.getLatLng()
+                                                    ],
+                                                    routeWhileDragging: false,
+                                                    addWaypoints: false,
+                                                    createMarker: function() { return null; }, // Don't create default markers
+                                                    lineOptions: {
+                                                        styles: [{ color: '#0984e3', weight: 4, opacity: 0.7 }]
+                                                    }
+                                                }).addTo(window.map);
+                                            } else {
+                                                // Fallback: Draw a simple line between points
+                                                var latlngs = [
+                                                    window.pickupMarker.getLatLng(),
+                                                    window.destinationMarker.getLatLng()
+                                                ];
+                                                window.routeLine = L.polyline(latlngs, {
+                                                    color: '#0984e3', 
+                                                    weight: 4, 
+                                                    opacity: 0.7
+                                                }).addTo(window.map);
+                                            }
+                                            
+                                            // Fit the map to show the entire route
+                                            var group = new L.featureGroup([window.pickupMarker, window.destinationMarker]);
+                                            window.map.fitBounds(group.getBounds().pad(0.1));
+                                        } catch (e) {
+                                            console.log('Route display error:', e);
+                                            alert('Route displayed with markers. Routing service may be unavailable.');
+                                        }
+                                    }
+                                }, 1000);
+                            }, 500);
+                        };
+                    }
+
+                    // Show vehicles button logic
+                    var showVehiclesBtn = document.getElementById('show-vehicles-btn');
+                    if (showVehiclesBtn) {
+                        showVehiclesBtn.onclick = function() {
+                            var pickup = document.getElementById('pickup').value.trim();
+                            var destination = document.getElementById('destination').value.trim();
+                            
+                            // Show vehicles list
+                            var vehicleList = document.getElementById('vehicle-list');
+                            if (vehicleList) {
+                                vehicleList.style.display = 'block';
+                                vehicleList.scrollIntoView({ behavior: 'smooth' });
+                            }
+                            
+                            // If both locations are provided, update with distance-based pricing
+                            if (pickup && destination && pickup.length >= 3 && destination.length >= 3) {
+                                console.log('Updating vehicles with route:', pickup, destination);
+                                updateVehiclesWithRoute(pickup, destination);
+                            } else {
+                                if (!pickup || !destination) {
+                                    alert('Enter pickup and destination locations for distance-based vehicle pricing, or view default vehicles below.');
+                                }
+                            }
+                        };
+                    }
+                    
+                    // Function to update vehicles dynamically
+                    function updateVehiclesWithRoute(pickup, destination) {
+                        // Show loading indicator
+                        var vehicleGrid = document.querySelector('#vehicle-list > div');
+                        if (vehicleGrid) {
+                            vehicleGrid.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">Calculating prices for your route...</div>';
+                        }
+                        
+                        // Update URL without page reload
+                        var newUrl = `/?pickup=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(destination)}`;
+                        window.history.pushState({}, '', newUrl);
+                        
+                        // Fetch new vehicle data
+                        fetch(newUrl)
+                            .then(response => response.text())
+                            .then(html => {
+                                // Extract vehicle grid from response
+                                var parser = new DOMParser();
+                                var doc = parser.parseFromString(html, 'text/html');
+                                var newVehicleGrid = doc.querySelector('#vehicle-list > div');
+                                
+                                if (newVehicleGrid && vehicleGrid) {
+                                    vehicleGrid.innerHTML = newVehicleGrid.innerHTML;
+                                    
+                                    // Update pickup and destination inputs
+                                    document.getElementById('pickup').value = pickup;
+                                    document.getElementById('destination').value = destination;
+                                    
+                                    // Update map markers
+                                    updateMarker('pickup', pickup);
+                                    setTimeout(() => {
+                                        updateMarker('destination', destination);
+                                    }, 500);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error updating vehicles:', error);
+                                if (vehicleGrid) {
+                                    vehicleGrid.innerHTML = '<div style="text-align:center;padding:20px;color:#e74c3c;">Error loading vehicles. Please try again.</div>';
+                                }
+                            });
+                    }
+                });
+                </script>
+                <!-- Removed duplicate vehicle details below main vehicle container -->
+            </div>
+            <div id="rent-section" style="display:none;">
+                <h2 style="margin-bottom:12px;">Rent a Vehicle</h2>
+                <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:16px;overflow-x:auto;">
+                    <!-- Bike -->
+                    <form method="post" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;">
+                        {% csrf_token %}
+                        <input type="hidden" name="rent_vehicle_type" value="Bike">
+                        <input type="hidden" name="rent_price" value="300">
+                        <img src="https://img.icons8.com/ios-filled/50/0984e3/motorcycle.png" alt="Bike" style="width:40px;height:40px;margin-bottom:8px;" />
+                        <span class="vehicle-type" style="font-size:1.1em;">Bike</span>
+                        <span class="vehicle-price" style="margin-top:6px;">₹300/day</span>
+                        <label style="margin-top:12px;font-weight:600;color:#6c3fcf;">Payment Method:</label>
+                        <select name="payment_method" required style="margin-bottom:12px;padding:8px 12px;border-radius:6px;border:1px solid #dfe6e9;">
+                            <option value="wallet">Wallet</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                        <button type="submit" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;width:100%;margin-top:8px;">Rent Now</button>
+                    </form>
+                    <!-- Car -->
+                    <form method="post" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;">
+                        {% csrf_token %}
+                        <input type="hidden" name="rent_vehicle_type" value="Car">
+                        <input type="hidden" name="rent_price" value="1200">
+                        <img src="https://img.icons8.com/ios-filled/50/0984e3/car--v1.png" alt="Car" style="width:40px;height:40px;margin-bottom:8px;" />
+                        <span class="vehicle-type" style="font-size:1.1em;">Car</span>
+                        <span class="vehicle-price" style="margin-top:6px;">₹1200/day</span>
+                        <label style="margin-top:12px;font-weight:600;color:#6c3fcf;">Payment Method:</label>
+                        <select name="payment_method" required style="margin-bottom:12px;padding:8px 12px;border-radius:6px;border:1px solid #dfe6e9;">
+                            <option value="wallet">Wallet</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                        <button type="submit" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;width:100%;margin-top:8px;">Rent Now</button>
+                    </form>
+                    <!-- SUV -->
+                    <form method="post" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;">
+                        {% csrf_token %}
+                        <input type="hidden" name="rent_vehicle_type" value="SUV">
+                        <input type="hidden" name="rent_price" value="2000">
+                        <img src="https://img.icons8.com/ios-filled/50/0984e3/suv.png" alt="SUV" style="width:40px;height:40px;margin-bottom:8px;" />
+                        <span class="vehicle-type" style="font-size:1.1em;">SUV</span>
+                        <span class="vehicle-price" style="margin-top:6px;">₹2000/day</span>
+                        <label style="margin-top:12px;font-weight:600;color:#6c3fcf;">Payment Method:</label>
+                        <select name="payment_method" required style="margin-bottom:12px;padding:8px 12px;border-radius:6px;border:1px solid #dfe6e9;">
+                            <option value="wallet">Wallet</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                        <button type="submit" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;width:100%;margin-top:8px;">Rent Now</button>
+                    </form>
+                    <!-- Sedan -->
+                    <form method="post" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;">
+                        {% csrf_token %}
+                        <input type="hidden" name="rent_vehicle_type" value="Sedan">
+                        <input type="hidden" name="rent_price" value="1500">
+                        <img src="https://img.icons8.com/ios-filled/50/0984e3/sedan.png" alt="Sedan" style="width:40px;height:40px;margin-bottom:8px;" />
+                        <span class="vehicle-type" style="font-size:1.1em;">Sedan</span>
+                        <span class="vehicle-price" style="margin-top:6px;">₹1500/day</span>
+                        <label style="margin-top:12px;font-weight:600;color:#6c3fcf;">Payment Method:</label>
+                        <select name="payment_method" required style="margin-bottom:12px;padding:8px 12px;border-radius:6px;border:1px solid #dfe6e9;">
+                            <option value="wallet">Wallet</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                        <button type="submit" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;width:100%;margin-top:8px;">Rent Now</button>
+                    </form>
+                    <!-- Electric Scooter -->
+                    <form method="post" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;">
+                        {% csrf_token %}
+                        <input type="hidden" name="rent_vehicle_type" value="Electric Scooter">
+                        <input type="hidden" name="rent_price" value="350">
+                        <img src="https://img.icons8.com/ios-filled/50/0984e3/electric-scooter.png" alt="Electric Scooter" style="width:40px;height:40px;margin-bottom:8px;" />
+                        <span class="vehicle-type" style="font-size:1.1em;">Electric Scooter</span>
+                        <span class="vehicle-price" style="margin-top:6px;">₹350/day</span>
+                        <label style="margin-top:12px;font-weight:600;color:#6c3fcf;">Payment Method:</label>
+                        <select name="payment_method" required style="margin-bottom:12px;padding:8px 12px;border-radius:6px;border:1px solid #dfe6e9;">
+                            <option value="wallet">Wallet</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                        <button type="submit" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;width:100%;margin-top:8px;">Rent Now</button>
+                    </form>
+                    <!-- Van -->
+                    <form method="post" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;">
+                        {% csrf_token %}
+                        <input type="hidden" name="rent_vehicle_type" value="Van">
+                        <input type="hidden" name="rent_price" value="1800">
+                        <img src="https://img.icons8.com/ios-filled/50/0984e3/van.png" alt="Van" style="width:40px;height:40px;margin-bottom:8px;" />
+                        <span class="vehicle-type" style="font-size:1.1em;">Van</span>
+                        <span class="vehicle-price" style="margin-top:6px;">₹1800/day</span>
+                        <label style="margin-top:12px;font-weight:600;color:#6c3fcf;">Payment Method:</label>
+                        <select name="payment_method" required style="margin-bottom:12px;padding:8px 12px;border-radius:6px;border:1px solid #dfe6e9;">
+                            <option value="wallet">Wallet</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                        <button type="submit" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;width:100%;margin-top:8px;">Rent Now</button>
+                    </form>
+                    <!-- Luxury Car -->
+                    <form method="post" style="background:#fff;border:1px solid #dfe6e9;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;">
+                        {% csrf_token %}
+                        <input type="hidden" name="rent_vehicle_type" value="Luxury Car">
+                        <input type="hidden" name="rent_price" value="3500">
+                        <img src="https://img.icons8.com/ios-filled/50/0984e3/luxury-car.png" alt="Luxury Car" style="width:40px;height:40px;margin-bottom:8px;" />
+                        <span class="vehicle-type" style="font-size:1.1em;">Luxury Car</span>
+                        <span class="vehicle-price" style="margin-top:6px;">₹3500/day</span>
+                        <label style="margin-top:12px;font-weight:600;color:#6c3fcf;">Payment Method:</label>
+                        <select name="payment_method" required style="margin-bottom:12px;padding:8px 12px;border-radius:6px;border:1px solid #dfe6e9;">
+                            <option value="wallet">Wallet</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                        <button type="submit" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 0;border:none;border-radius:8px;width:100%;margin-top:8px;">Rent Now</button>
+                    </form>
+                </div>
+            </div>
+            <script>
+                document.getElementById('tab-ride').onclick = function() {
+                    document.getElementById('ride-section').style.display = 'block';
+                    document.getElementById('rent-section').style.display = 'none';
+                    this.style.background = '#0984e3';
+                    this.style.color = '#fff';
+                    document.getElementById('tab-rent').style.background = '#dfe6e9';
+                    document.getElementById('tab-rent').style.color = '#2d3436';
+                };
+                document.getElementById('tab-rent').onclick = function() {
+                    document.getElementById('ride-section').style.display = 'none';
+                    document.getElementById('rent-section').style.display = 'block';
+                    this.style.background = '#0984e3';
+                    this.style.color = '#fff';
+                    document.getElementById('tab-ride').style.background = '#dfe6e9';
+                    document.getElementById('tab-ride').style.color = '#2d3436';
+                };
+            </script>
+        {% else %}
+            <div style="min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(120deg, #e3d6fa 0%, #f6f3ff 100%);">
+                <div style="background: #fff; border-radius: 24px; box-shadow: 0 8px 32px rgba(44,34,94,0.12); padding: 56px 48px 48px 48px; text-align: center; max-width: 400px; width: 100%;">
+                    <h1 style="font-size: 3rem; color: #2d1e5f; margin-bottom: 36px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 2px 16px #d1c4e9;">RideOn</h1>
+                    <div style="display: flex; gap: 30px; justify-content: center;">
+                        <a href="{% url 'login' %}" style="color: #fff; text-decoration: none; font-size: 1.18rem; font-weight: 700; padding: 16px 40px; border-radius: 14px; background: linear-gradient(90deg, #6c3fcf 0%, #8f5de7 100%); box-shadow: 0 4px 16px rgba(44,34,94,0.10); border: none; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; outline: none; border: none; display: inline-block;">Login</a>
+                        <a href="{% url 'register' %}" style="color: #fff; text-decoration: none; font-size: 1.18rem; font-weight: 700; padding: 16px 40px; border-radius: 14px; background: linear-gradient(90deg, #6c3fcf 0%, #8f5de7 100%); box-shadow: 0 4px 16px rgba(44,34,94,0.10); border: none; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; outline: none; border: none; display: inline-block;">Register</a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    <script>
+    // Update fare and filter vehicles by distance (Uber-like logic)
+    function updateFareByDistance(distanceKm) {
+        // Vehicle visibility logic
+    var vehicleTypes = ['Mini', 'Bike', 'SUV', 'Auto'];
+        var vehicleCards = {};
+        vehicleTypes.forEach(function(type) {
+            var el = document.querySelector('.vehicle-price[data-type="' + type + '"]');
+            vehicleCards[type] = el ? el.closest('form') : null;
+        });
+        // Show/hide vehicles based on distance
+        vehicleTypes.forEach(function(type) {
+            if (!vehicleCards[type]) return;
+            if (type === 'Bike' && distanceKm >= 15) vehicleCards[type].style.display = 'none';
+            else if (type === 'Mini' && distanceKm >= 45) vehicleCards[type].style.display = 'none';
+            else if (type === 'Sedan' && distanceKm >= 120) vehicleCards[type].style.display = 'none';
+            else if (type === 'SUV') vehicleCards[type].style.display = '';
+            else if (type === 'Auto' && distanceKm >= 45) vehicleCards[type].style.display = 'none';
+            else vehicleCards[type].style.display = '';
+        });
+        // Uber-like fare calculation
+        var fares = {
+            Mini: function(d) { return Math.round(50 + d * 12); },
+            Bike: function(d) { return Math.round(20 + d * 6); },
+            SUV: function(d) { return Math.round(120 + d * 20); },
+            Auto: function(d) { return Math.round(30 + d * 9); }
+        };
+        vehicleTypes.forEach(function(type) {
+            var price = fares[type](distanceKm);
+            var priceSpan = document.querySelector('.vehicle-price[data-type="' + type + '"]');
+            if (priceSpan) priceSpan.innerHTML = '<strong>Price:</strong> ₹' + price;
+            var priceInput = document.querySelector('input[name="price"][data-type="' + type + '"]');
+            if (priceInput) priceInput.value = price;
+        });
+    }
+    // Promocode status display only (no fare change)
+    document.addEventListener('DOMContentLoaded', function() {
+        var promocodeInput = document.getElementById('promocode');
+        if (promocodeInput) {
+            promocodeInput.addEventListener('input', function() {
+                var promocode = promocodeInput.value.trim().toLowerCase();
+                var promoStatus = document.getElementById('promo-status');
+                if (!promoStatus) {
+                    var form = promocodeInput.parentElement.parentElement;
+                    promoStatus = document.createElement('div');
+                    promoStatus.id = 'promo-status';
+                    promoStatus.style.marginLeft = '12px';
+                    promoStatus.style.fontWeight = '600';
+                    promoStatus.style.color = '#0984e3';
+                    form.appendChild(promoStatus);
+                }
+                if (promocode) {
+                    promoStatus.textContent = 'Promocode entered: ' + promocode;
+                    promoStatus.style.color = '#0984e3';
+                } else {
+                    promoStatus.textContent = '';
+                }
+            });
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Booking History</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f7f7f7;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 780px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            padding: 32px 24px 24px 24px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 24px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: #fafafa;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+        }
+        th {
+            background: #e3e3e3;
+            color: #444;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        tr:hover {
+            background: #e9f5ff;
+        }
+        a {
+            display: inline-block;
+            margin-top: 28px;
+            padding: 10px 22px;
+            background: #007bff;
+            color: #fff;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        a:hover {
+            background: #0056b3;
+        }
+        p {
+            text-align: center;
+            color: #888;
+            font-size: 1.1em;
+            margin-top: 32px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Booking History</h2>
+        {% if bookings %}
+        <div style="text-align:right;margin-bottom:12px;">
+            <a href="{% url 'download_bookings_csv' %}" style="background:#2d98da;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;">Export CSV</a>
+        </div>
+        <table style="width:100%;margin-top:24px;">
+            <tr><th>Vehicle</th><th>Fare</th><th>Pickup</th><th>Destination</th><th>Status</th><th>Date</th></tr>
+            {% for b in bookings %}
+            <tr>
+                <td>{{ b.vehicle_type }}</td>
+                <td>₹{{ b.price }}</td>
+                <td>{{ b.pickup }}</td>
+                <td>{{ b.destination }}</td>
+                <td style="white-space:nowrap;">
+                    <span style="display:inline-block;vertical-align:middle;">
+                        {{ b.status }}
+                        {% if b.status == 'Paid' %}
+                            <span style="color:#27ae60;font-size:0.8em;">✓</span>
+                        {% endif %}
+                    </span>
+                    {% if b.can_cancel and b.status == 'Confirmed' %}
+                        <form method="post" action="/cancel_booking/" style="display:inline;margin-left:8px;vertical-align:middle;">
+                            {% csrf_token %}
+                            <input type="hidden" name="booking_id" value="{{ b.id }}">
+                            <button type="submit" style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.95em;vertical-align:middle;">Cancel</button>
+                        </form>
+                    {% endif %}
+                    {% if b.status == 'Completed' %}
+                        <a href="{% url 'trip_payment' b.id %}" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.95em;vertical-align:middle;text-decoration:none;margin-left:8px;">Pay Now</a>
+                    {% endif %}
+                    {% if b.status == 'Paid' %}
+                        <a href="{% url 'download_receipt' b.id %}" style="background:#6c63ff;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.95em;vertical-align:middle;text-decoration:none;margin-left:8px;">Download Receipt</a>
+                    {% endif %}
+                    {% if b.status == 'Driver Assigned' or b.status == 'In Progress' %}
+                        <a href="{% url 'trip_details' b.id %}" style="background:#6c3fcf;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.95em;vertical-align:middle;text-decoration:none;margin-left:8px;">Trip Details</a>
+                    {% endif %}
+                </td>
+                <td>{{ b.created_at }}</td>
+            </tr>
+            {% if b.status == 'Completed' %}
+            <tr>
+                <td colspan="6" style="background:#f7f7f7;color:#2d1e5f;font-size:1em;padding:10px 16px;">
+                    <form method="post" action="/submit_feedback/" style="margin:0;display:flex;flex-direction:row;align-items:center;gap:12px;">
+                        {% csrf_token %}
+                        <input type="hidden" name="booking_id" value="{{ b.id }}">
+                        <label for="rating-{{ b.id }}">Rate:</label>
+                        <select name="rating" id="rating-{{ b.id }}" style="padding:4px 8px;border-radius:4px;">
+                            <option value="">--</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                        <input type="text" name="feedback" placeholder="Feedback" style="padding:4px 8px;border-radius:4px;border:1px solid #dfe6e9;">
+                        <button type="submit" style="background:#0984e3;color:#fff;border:none;border-radius:4px;padding:4px 10px;">Submit</button>
+                    </form>
+                </td>
+            </tr>
+            {% endif %}
+            {% if b.status == 'Rented' %}
+            <tr>
+                <td colspan="6" style="background:#e3e3e3;color:#2d1e5f;font-size:1em;padding:10px 16px;">
+                    <strong>Rented Vehicle Details:</strong>
+                    <ul style="margin:8px 0 0 18px;padding:0;">
+                        <li>Type: {{ b.vehicle_type }}</li>
+                        <li>Pickup: {{ b.pickup }}</li>
+                        <li>Destination: {{ b.destination }}</li>
+                        <li>Fare: ₹{{ b.price }}</li>
+                        <li>Date: {{ b.created_at }}</li>
+                        <li>Payment Method: {{ b.payment_method|default:'N/A' }}</li>
+                        <li>Rental Duration: 1 day (demo)</li>
+                    </ul>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #666;">
+            <i class="fas fa-history" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.3;"></i>
+            <p style="font-size: 1.2rem; margin-bottom: 30px;">No bookings found.</p>
+            <a href="/" style="background: #6c3fcf; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                <i class="fas fa-plus"></i> Book Your First Ride
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- Book Another Ride Button - Only show if no active trip -->
+        {% if not has_active_trip %}
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <a href="/" style="background: linear-gradient(135deg, #6c3fcf 0%, #764ba2 100%); color: white; padding: 15px 30px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 1.1rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(108, 63, 207, 0.3); transition: transform 0.3s;">
+                <i class="fas fa-plus-circle"></i> Book Another Ride
+            </a>
+        </div>
+        {% endif %}
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/" style="color: #6c3fcf; text-decoration: none; font-weight: 600;">
+                <i class="fas fa-home"></i> Back to Home
+            </a>
+            <span style="margin: 0 15px; color: #ccc;">|</span>
+            <a href="{% url 'user_preferences' %}" style="color: #6c3fcf; text-decoration: none; font-weight: 600;">
+                <i class="fas fa-cog"></i> Preferences
+            </a>
+        </div>
+    </div>
+</body>
+</html>

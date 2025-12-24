@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Book Vehicle</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            margin: 0; 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 500px; 
+            width: 100%; 
+            background: #fff; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); 
+            padding: 40px 32px; 
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h2 { 
+            color: #2d1e5f; 
+            text-align: center; 
+            margin-bottom: 30px; 
+            font-size: 2rem; 
+            font-weight: 800; 
+        }
+        .active-trip-banner {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            border: 2px solid #ff6b9d;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #721c24;
+        }
+        .active-trip-banner h3 {
+            margin: 0 0 15px 0;
+            color: #721c24;
+            font-size: 1.3rem;
+        }
+        .active-trip-banner .trip-status {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 600;
+        }
+        .booking-details { 
+            margin-bottom: 30px; 
+            font-size: 1.1rem; 
+            line-height: 1.8; 
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #6c3fcf;
+        }
+        .booking-details strong {
+            color: #2d1e5f;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 8px;
+        }
+        .wallet { 
+            margin-bottom: 30px; 
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4f7d4 100%); 
+            padding: 18px 24px; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            color: #1a5d1a; 
+            border-left: 4px solid #28a745;
+            display: flex;
+            align-items: center;
+        }
+        .wallet i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        form { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+        }
+        label { 
+            font-weight: 600; 
+            color: #2d1e5f;
+            font-size: 1.1rem;
+        }
+        select { 
+            padding: 15px 18px; 
+            border-radius: 10px; 
+            border: 2px solid #e1e5e9; 
+            font-size: 1rem; 
+            transition: border-color 0.3s;
+            background: white;
+        }
+        select:focus {
+            outline: none;
+            border-color: #6c3fcf;
+        }
+        button { 
+            background: linear-gradient(135deg, #6c3fcf 0%, #764ba2 100%); 
+            color: #fff; 
+            font-weight: 700; 
+            font-size: 1.2rem; 
+            padding: 18px 0; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(108, 63, 207, 0.3);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+        }
+        .back-link { 
+            text-align: center; 
+            margin-top: 30px; 
+        }
+        .back-link a { 
+            color: #6c3fcf; 
+            font-weight: 600; 
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .back-link a:hover {
+            color: #5a2db5;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .action-buttons button {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if has_active_trip %}
+            <div class="active-trip-banner">
+                <h3><i class="fas fa-exclamation-triangle"></i> Active Trip in Progress</h3>
+                <p>You currently have an active trip. Complete your current trip before booking another ride.</p>
+                <div class="trip-status">
+                    <strong>Booking #{{ active_booking.pk }}</strong> - Status: {{ active_booking.status }}
+                </div>
+                <div class="booking-details">
+                    <div><strong><i class="fas fa-car"></i> Vehicle:</strong> {{ active_booking.vehicle_type }}</div>
+                    <div><strong><i class="fas fa-money-bill-wave"></i> Fare:</strong> ₹{{ active_booking.price }}</div>
+                    <div><strong><i class="fas fa-map-marker-alt"></i> From:</strong> {{ active_booking.pickup }}</div>
+                    <div><strong><i class="fas fa-flag-checkered"></i> To:</strong> {{ active_booking.destination }}</div>
+                    {% if active_booking.driver %}
+                    <div><strong><i class="fas fa-user"></i> Driver:</strong> {{ active_booking.driver.name }}</div>
+                    {% endif %}
+                </div>
+                <div class="action-buttons">
+                    <a href="{% url 'booking_history' %}" style="text-decoration: none; flex: 1;">
+                        <button type="button" class="btn-secondary" style="width: 100%;">
+                            <i class="fas fa-history"></i> View Trip History
+                        </button>
+                    </a>
+                    {% if active_booking.status == 'Completed' %}
+                    <a href="{% url 'trip_payment' active_booking.pk %}" style="text-decoration: none; flex: 1;">
+                        <button type="button" class="btn-warning" style="width: 100%;">
+                            <i class="fas fa-credit-card"></i> Complete Payment
+                        </button>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <h2><i class="fas fa-car"></i> Booking Details</h2>
+            <div class="booking-details">
+                <div><strong><i class="fas fa-car"></i> Vehicle:</strong> {{ vehicle_type }}</div>
+                <div><strong><i class="fas fa-money-bill-wave"></i> Fare:</strong> ₹{{ price }}</div>
+                <div><strong><i class="fas fa-map-marker-alt"></i> From:</strong> {{ pickup }}</div>
+                <div><strong><i class="fas fa-flag-checkered"></i> To:</strong> {{ destination }}</div>
+            </div>
+            <div class="wallet">
+                <i class="fas fa-wallet"></i>
+                <span>Wallet Balance: ₹{{ wallet.balance|default:'0.00' }}</span>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="vehicle_type" value="{{ vehicle_type }}">
+                <input type="hidden" name="price" value="{{ price }}">
+                <input type="hidden" name="pickup" value="{{ pickup }}">
+                <input type="hidden" name="destination" value="{{ destination }}">
+                <label><i class="fas fa-credit-card"></i> Select Payment Method:</label>
+                <select name="payment_method" required>
+                    <option value="wallet">💰 Wallet (₹{{ wallet.balance|default:'0.00' }})</option>
+                    <option value="card">💳 Credit/Debit Card</option>
+                    <option value="upi">📱 UPI</option>
+                    <option value="cash">💵 Cash</option>
+                </select>
+                <button type="submit">
+                    <i class="fas fa-check"></i> Confirm Booking
+                </button>
+            </form>
+        {% endif %}
+        <div class="back-link">
+            <a href="/"><i class="fas fa-home"></i> Back to Home</a>
+            <span style="margin: 0 15px; color: #ccc;">|</span>
+            <a href="{% url 'user_preferences' %}"><i class="fas fa-cog"></i> Preferences</a>
+        </div>
+    </div>
+</body>
+</html>

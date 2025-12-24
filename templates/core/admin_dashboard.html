@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard - Trip Management</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body { background: #f7f7f7; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; }
+        .container { max-width: 1000px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); padding: 32px 24px; }
+        h2 { text-align: center; color: #6c3fcf; margin-bottom: 32px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: #f8f9ff; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #6c3fcf; }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #6c3fcf; }
+        .stat-label { color: #666; margin-top: 8px; }
+        .trip-list { margin-top: 24px; }
+        .trip-card { background: #fff; border: 1px solid #e1e5e9; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .trip-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .trip-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .trip-actions { display: flex; gap: 8px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-start { background: #28a745; color: white; }
+        .btn-end { background: #dc3545; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 500; }
+        .status-assigned { background: #fff3cd; color: #856404; }
+        .status-progress { background: #d1ecf1; color: #0c5460; }
+        .empty-state { text-align: center; color: #666; padding: 40px; }
+        .message-success { padding: 12px; margin-bottom: 16px; border-radius: 6px; background: #d4edda; color: #155724; }
+        .message-error { padding: 12px; margin-bottom: 16px; border-radius: 6px; background: #f8d7da; color: #721c24; }
+        .message-info { padding: 12px; margin-bottom: 16px; border-radius: 6px; background: #d1ecf1; color: #0c5460; }
+        .trip-timer { background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 4px; font-size: 0.9em; margin-left: 8px; }
+        .receipt-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .receipt-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; }
+        .receipt-header { text-align: center; margin-bottom: 20px; color: #6c3fcf; }
+        .receipt-item { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .receipt-total { border-top: 2px solid #6c3fcf; padding-top: 8px; font-weight: bold; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Admin Dashboard - Trip Management</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="{% if message.tags == 'success' %}message-success{% elif message.tags == 'error' %}message-error{% else %}message-info{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_ongoing }}</div>
+                <div class="stat-label">Ongoing Trips</div>
+            </div>
+        </div>
+        
+        <h3>Ongoing Trips</h3>
+        <div class="trip-list">
+            {% if ongoing_bookings %}
+                {% for booking in ongoing_bookings %}
+                <div class="trip-card" 
+                     {% if booking.status == 'In Progress' %}
+                     data-booking-id="{{ booking.pk }}"
+                     data-customer="{{ booking.user.username }}"
+                     data-vehicle="{{ booking.vehicle_type }}"
+                     data-fare="{{ booking.price }}"
+                     data-pickup="{{ booking.pickup }}"
+                     data-destination="{{ booking.destination }}"
+                     data-status="in-progress"
+                     {% endif %}>
+                    <div class="trip-header">
+                        <h4 style="margin: 0; color: #333;">Booking #{{ booking.pk }}</h4>
+                        <span class="status-badge {% if booking.status == 'Driver Assigned' %}status-assigned{% elif booking.status == 'In Progress' %}status-progress{% endif %}">
+                            {{ booking.status }}
+                        </span>
+                        {% if booking.status == 'In Progress' %}
+                            <span class="trip-timer" id="timer-{{ booking.pk }}">Auto-end in: 5s</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="trip-info">
+                        <div><strong>Customer:</strong> {{ booking.user.username }}</div>
+                        <div><strong>Vehicle:</strong> {{ booking.vehicle_type }}</div>
+                        <div><strong>Fare:</strong> ₹{{ booking.price }}</div>
+                        <div><strong>From:</strong> {{ booking.pickup }}</div>
+                        <div><strong>To:</strong> {{ booking.destination }}</div>
+                        {% if booking.driver %}
+                        <div><strong>Driver:</strong> {{ booking.driver.name }}</div>
+                        <div><strong>Vehicle #:</strong> {{ booking.driver.vehicle_number }}</div>
+                        {% endif %}
+                        <div><strong>Booked:</strong> {{ booking.created_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    
+                    <div class="trip-actions">
+                        <form method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="booking_id" value="{{ booking.pk }}">
+                            
+                            {% if booking.status == 'Driver Assigned' %}
+                                <button type="submit" name="action" value="start_trip" class="btn btn-start">Start Trip</button>
+                            {% elif booking.status == 'In Progress' %}
+                                <button type="submit" name="action" value="end_trip" class="btn btn-end" id="end-trip-{{ booking.pk }}">End Trip</button>
+                            {% endif %}
+                        </form>
+                        
+                        <a href="{% url 'booking_history' %}" class="btn btn-info">View Details</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p>No ongoing trips at the moment.</p>
+                    <p style="color: #999; font-size: 0.9em;">Trips will appear here when customers book vehicles.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div style="text-align:center;margin-top:32px;">
+            <a href="/" style="background:#6c3fcf;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="receipt-modal">
+        <div class="receipt-content">
+            <div class="receipt-header">
+                <h3>🧾 Trip Receipt</h3>
+                <p>Trip Completed Successfully!</p>
+            </div>
+            
+            <div id="receiptDetails">
+                <!-- Receipt details will be populated by JavaScript -->
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="closeReceipt()" style="background: #6c3fcf; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px;">Close</button>
+                <button onclick="redirectToPayment()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Pay Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentBookingId = null;
+        
+        // Auto-end trips after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all trip cards with in-progress status
+            const inProgressTrips = document.querySelectorAll('[data-status="in-progress"]');
+            
+            inProgressTrips.forEach(function(tripCard) {
+                const bookingId = tripCard.dataset.bookingId;
+                const customer = tripCard.dataset.customer;
+                const vehicle = tripCard.dataset.vehicle;
+                const fare = tripCard.dataset.fare;
+                const pickup = tripCard.dataset.pickup;
+                const destination = tripCard.dataset.destination;
+                
+                startTripTimer(bookingId, customer, vehicle, fare, pickup, destination);
+            });
+        });
+
+        function startTripTimer(bookingId, customer, vehicle, fare, pickup, destination) {
+            let timeLeft = 5;
+            const timerElement = document.getElementById(`timer-${bookingId}`);
+            const endButton = document.getElementById(`end-trip-${bookingId}`);
+            
+            const countdown = setInterval(function() {
+                timeLeft--;
+                if (timerElement) {
+                    timerElement.textContent = `Auto-end in: ${timeLeft}s`;
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    
+                    // Auto-end the trip
+                    currentBookingId = bookingId;
+                    showReceipt(customer, vehicle, fare, pickup, destination);
+                    
+                    // Auto-submit the end trip form
+                    if (endButton) {
+                        endButton.click();
+                    }
+                }
+            }, 1000);
+        }
+
+        function showReceipt(customer, vehicle, fare, pickup, destination) {
+            const receiptDetails = document.getElementById('receiptDetails');
+            receiptDetails.innerHTML = `
+                <div class="receipt-item">
+                    <span>Customer:</span>
+                    <span>${customer}</span>
+                </div>
+                <div class="receipt-item">
+                    <span>Vehicle Type:</span>
+                    <span>${vehicle}</span>
+                </div>
+                <div class="receipt-item">
+                    <span>From:</span>
+                    <span>${pickup}</span>
+                </div>
+                <div class="receipt-item">
+                    <span>To:</span>
+                    <span>${destination}</span>
+                </div>
+                <div class="receipt-item">
+                    <span>Trip Duration:</span>
+                    <span>5 seconds</span>
+                </div>
+                <div class="receipt-item receipt-total">
+                    <span>Total Fare:</span>
+                    <span>₹${fare}</span>
+                </div>
+            `;
+            
+            document.getElementById('receiptModal').style.display = 'block';
+        }
+
+        function closeReceipt() {
+            document.getElementById('receiptModal').style.display = 'none';
+            // Refresh page to show updated status
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
+
+        function redirectToPayment() {
+            if (currentBookingId) {
+                window.location.href = `/trip_payment/${currentBookingId}/`;
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('receiptModal');
+            if (event.target === modal) {
+                closeReceipt();
+            }
+        }
+    </script>
+</body>
+</html>

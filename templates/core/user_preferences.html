@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Preferences - RideON</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            margin: 0; 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            padding: 20px 0;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: #fff; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); 
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .header {
+            background: linear-gradient(135deg, #6c3fcf 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .section {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #6c3fcf;
+        }
+        .section h3 {
+            margin: 0 0 20px 0;
+            color: #2d1e5f;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+        }
+        .section h3 i {
+            margin-right: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #2d1e5f;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+        .form-group select,
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-group select:focus,
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #6c3fcf;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        .checkbox-group label {
+            margin: 0;
+            color: #444;
+            cursor: pointer;
+        }
+        .recent-locations, .favorite-routes {
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .location-item {
+            background: #f8f9ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .location-item .remove-btn {
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6c3fcf 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 63, 207, 0.3);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            margin-left: 15px;
+        }
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: white;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #6c3fcf;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link a:hover {
+            color: #5a2db5;
+        }
+        .message-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2><i class="fas fa-cog"></i> User Preferences</h2>
+            <p>Customize your RideON experience</p>
+        </div>
+        
+        <div class="content">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message-success">
+                        <i class="fas fa-check-circle"></i> {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <!-- General Preferences -->
+                <div class="section">
+                    <h3><i class="fas fa-user-cog"></i> General Preferences</h3>
+                    
+                    <div class="form-group">
+                        <label for="preferred_vehicle">Preferred Vehicle Type:</label>
+                        <select name="preferred_vehicle" id="preferred_vehicle">
+                            <option value="Auto" {% if user_preferences.preferred_vehicle == 'Auto' %}selected{% endif %}>Auto Rickshaw</option>
+                            <option value="Bike" {% if user_preferences.preferred_vehicle == 'Bike' %}selected{% endif %}>Bike</option>
+                            <option value="Car" {% if user_preferences.preferred_vehicle == 'Car' %}selected{% endif %}>Car</option>
+                            <option value="Luxury" {% if user_preferences.preferred_vehicle == 'Luxury' %}selected{% endif %}>Luxury Car</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="preferred_payment">Preferred Payment Method:</label>
+                        <select name="preferred_payment" id="preferred_payment">
+                            <option value="wallet" {% if user_preferences.preferred_payment == 'wallet' %}selected{% endif %}>Wallet</option>
+                            <option value="card" {% if user_preferences.preferred_payment == 'card' %}selected{% endif %}>Credit/Debit Card</option>
+                            <option value="upi" {% if user_preferences.preferred_payment == 'upi' %}selected{% endif %}>UPI</option>
+                            <option value="cash" {% if user_preferences.preferred_payment == 'cash' %}selected{% endif %}>Cash</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="theme">Theme:</label>
+                        <select name="theme" id="theme">
+                            <option value="light" {% if user_preferences.theme == 'light' %}selected{% endif %}>Light</option>
+                            <option value="dark" {% if user_preferences.theme == 'dark' %}selected{% endif %}>Dark</option>
+                            <option value="auto" {% if user_preferences.theme == 'auto' %}selected{% endif %}>Auto</option>
+                        </select>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="notifications" id="notifications" 
+                               {% if user_preferences.notifications %}checked{% endif %}>
+                        <label for="notifications">Enable Push Notifications</label>
+                    </div>
+                </div>
+                
+                <!-- Booking Preferences -->
+                <div class="section">
+                    <h3><i class="fas fa-car"></i> Booking Preferences</h3>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="auto_confirm" id="auto_confirm"
+                               {% if booking_preferences.auto_confirm %}checked{% endif %}>
+                        <label for="auto_confirm">Auto-confirm bookings</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="share_location" id="share_location"
+                               {% if booking_preferences.share_location %}checked{% endif %}>
+                        <label for="share_location">Share location with driver</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="sms_updates" id="sms_updates"
+                               {% if booking_preferences.sms_updates %}checked{% endif %}>
+                        <label for="sms_updates">Receive SMS updates</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="email_notifications" id="email_notifications"
+                               {% if booking_preferences.email_notifications %}checked{% endif %}>
+                        <label for="email_notifications">Email notifications</label>
+                    </div>
+                </div>
+                
+                <!-- Recent Locations -->
+                <div class="section">
+                    <h3><i class="fas fa-map-marker-alt"></i> Recent Locations</h3>
+                    
+                    {% if recent_locations.pickup %}
+                        <h4>Recent Pickup Locations:</h4>
+                        <div class="recent-locations">
+                            {% for location in recent_locations.pickup %}
+                                <div class="location-item">
+                                    <span>{{ location }}</span>
+                                    <span class="remove-btn" onclick="removeLocation('pickup', '{{ location }}')">
+                                        <i class="fas fa-times"></i>
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if recent_locations.destination %}
+                        <h4>Recent Destinations:</h4>
+                        <div class="recent-locations">
+                            {% for location in recent_locations.destination %}
+                                <div class="location-item">
+                                    <span>{{ location }}</span>
+                                    <span class="remove-btn" onclick="removeLocation('destination', '{{ location }}')">
+                                        <i class="fas fa-times"></i>
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Favorite Routes -->
+                {% if favorite_routes %}
+                <div class="section">
+                    <h3><i class="fas fa-heart"></i> Favorite Routes</h3>
+                    
+                    <div class="favorite-routes">
+                        {% for route in favorite_routes %}
+                            <div class="location-item">
+                                <span>{{ route.pickup }} → {{ route.destination }}</span>
+                                <span class="remove-btn" onclick="removeFavorite('{{ route.pickup }}', '{{ route.destination }}')">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Preferences
+                    </button>
+                    
+                    <button type="button" class="btn btn-danger" onclick="clearAllPreferences()">
+                        <i class="fas fa-trash"></i> Clear All Data
+                    </button>
+                </div>
+            </form>
+            
+            <div class="back-link">
+                <a href="{% url 'booking_history' %}">
+                    <i class="fas fa-arrow-left"></i> Back to Booking History
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function clearAllPreferences() {
+            if (confirm('Are you sure you want to clear all your preferences and data? This action cannot be undone.')) {
+                fetch('/clear_preferences/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('All preferences cleared successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error clearing preferences: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error clearing preferences');
+                });
+            }
+        }
+        
+        function removeLocation(type, location) {
+            // This would require an AJAX endpoint to modify cookies
+            console.log('Remove location:', type, location);
+        }
+        
+        function removeFavorite(pickup, destination) {
+            // This would require an AJAX endpoint to modify cookies
+            console.log('Remove favorite:', pickup, destination);
+        }
+    </script>
+</body>
+</html>

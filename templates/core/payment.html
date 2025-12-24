@@ -1,0 +1,53 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<div style="max-width:500px;margin:40px auto;background:#fff;padding:32px 24px;border-radius:16px;box-shadow:0 2px 16px rgba(44,34,94,0.10);">
+    <h2 style="margin-bottom:18px;">Pay for Your Ride</h2>
+    <p><strong>Booking ID:</strong> {{ booking.id }}</p>
+    <p><strong>Vehicle:</strong> {{ booking.vehicle_type }}</p>
+    <p><strong>Fare:</strong> ₹{{ booking.price }}</p>
+    {% if not payment_success %}
+    <form method="post" action="" id="demo-payment-form">
+        {% csrf_token %}
+        <label for="demo-method" style="font-weight:600;color:#0984e3;">Select Payment Method:</label>
+        <select name="demo_method" id="demo-method" required style="margin-bottom:18px;padding:8px 12px;border-radius:6px;border:1px solid #dfe6e9;">
+            <option value="wallet">Wallet</option>
+            <option value="card">Credit/Debit Card</option>
+            <option value="upi">UPI</option>
+            <option value="cash">Cash</option>
+            <option value="demo">Demo Payment</option>
+        </select>
+        <div id="card-fields" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+            <input type="text" name="card_number" placeholder="Card Number (Demo)" maxlength="19" style="padding:8px;border-radius:6px;border:1px solid #dfe6e9;">
+            <input type="text" name="card_expiry" placeholder="MM/YY" maxlength="5" style="padding:8px;border-radius:6px;border:1px solid #dfe6e9;">
+            <input type="text" name="card_cvv" placeholder="CVV" maxlength="4" style="padding:8px;border-radius:6px;border:1px solid #dfe6e9;">
+        </div>
+        <div id="upi-fields" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+            <input type="text" name="upi_id" placeholder="UPI ID (Demo)" style="padding:8px;border-radius:6px;border:1px solid #dfe6e9;">
+        </div>
+        <button type="submit" style="background:#6c3fcf;color:#fff;font-weight:600;padding:10px 18px;border:none;border-radius:8px;font-size:1em;width:100%;">Pay Now (Demo)</button>
+    </form>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var methodSelect = document.getElementById('demo-method');
+        var cardFields = document.getElementById('card-fields');
+        var upiFields = document.getElementById('upi-fields');
+        function updateFields() {
+            cardFields.style.display = (methodSelect.value === 'card') ? 'flex' : 'none';
+            upiFields.style.display = (methodSelect.value === 'upi') ? 'flex' : 'none';
+        }
+        methodSelect.addEventListener('change', updateFields);
+        updateFields(); // Set initial state
+    });
+    </script>
+    {% else %}
+        <div style="margin-top:18px;color:#27ae60;font-weight:600;">Payment successful! Thank you for your ride.</div>
+        {% if payment_method == 'card' %}
+            <div style="margin-top:8px;font-size:0.98em;">Card ending with: {{ card_number|default:'****'|slice:'-4:' }}</div>
+        {% elif payment_method == 'upi' %}
+            <div style="margin-top:8px;font-size:0.98em;">UPI ID: {{ upi_id|default:'****' }}</div>
+        {% endif %}
+        <script>setTimeout(function(){ window.location.href = '/booking_success/'; }, 1500);</script>
+    {% endif %}
+</div>
+{% endblock %}
