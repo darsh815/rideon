@@ -6,6 +6,9 @@ A comprehensive Django-based ride booking application with advanced features inc
 ![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)
 
+Built under C-TAG Coding Academy by Gandhi's
+Guided By @Palak Paras Gandhi
+
 ## 🚀 Key Features
 
 ### 🎯 **Smart Booking System**
@@ -295,3 +298,4 @@ This project is proprietary. All rights reserved.
 **Built with ❤️ using Django**
 
 *RideON - Your Complete Ride Booking Solution*
+
